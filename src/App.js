@@ -1,25 +1,298 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useRef, useEffect } from 'react';
+import Graph from 'react-graph-vis';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
-}
+const MERGED_METANODE_COLOR = "#ADD8E6";
+const UNMERGED_METANODE_COLOR = "#FFB6C1";
 
-export default App;
+const BunnyGraph = () => {
+    const [originalData, setOriginalData] = useState({ nodes: [], edges: [] });
+    const [graphData, setGraphData] = useState({ nodes: [], edges: [] });
+    const [graphKey, setGraphKey] = useState(0);
+    const [isMergingEnabled, setIsMergingEnabled] = useState(false);
+    const [suggestedPairs, setSuggestedPairs] = useState([]);
+    const [graphOptions, setGraphOptions] = useState({
+        // TODO: add 'manipulation' option to allow editing the graph?
+        // TODO: add a way to pin nodes in place?
+        autoResize: true, // Note: this causes problems when configure mode is uncommented
+        nodes: {
+            "opacity": 0.5,
+        },
+        edges: {
+            arrows: '' // disable arrowheads on edges
+        },
+        interaction: {
+            keyboard: {
+              enabled: true
+            },
+            multiselect: true
+        },
+        // uncomment configure to play with tons of options!
+        // configure: {
+        //     enabled: true,
+        //     showButton: true,
+        //     container: undefined,
+        // }
+    });
+
+    // // only relevant if 'configure' is set to true in the graph options
+    // const configContainerRef = useRef(null);
+    // useEffect(() => {
+    //     // Clear any existing configuration to prevent duplication //TODO: this doesn't seem to actually work
+    //     if (configContainerRef.current) {
+    //         configContainerRef.current.innerHTML = '';
+    //     }
+    //     // Update the graph options with the ref to the container
+    //     setGraphOptions((prevOptions) => ({
+    //         ...prevOptions,
+    //         configure: {
+    //             ...prevOptions.configure,
+    //             container: configContainerRef.current,
+    //         },
+    //     }));
+    // }, []); // Empty dependency array should theoretically ensure this runs only once after initial render??
+
+    const handleKeyDown = (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+            handleLoadClipboard();
+        }
+    };
+
+    useEffect(() => {
+        document.addEventListener('keydown', handleKeyDown);
+        return () => { // Cleanup
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, []);
+
+    const handleLoadClipboard = () => {
+        navigator.clipboard.readText()
+            .then(text => {
+                const newOriginalData = parseRawInput(text);
+                setOriginalData(newOriginalData);
+                // Directly pass the new data to updateGraph instead of relying on the graphData state to guarantee it renders in current cycle
+                updateGraph(newOriginalData, isMergingEnabled); // TODO: doesn't always seem to use the correct value of isMergingEnabled
+            })
+            .catch(err => console.error('Failed to read clipboard contents: ', err));
+    };
+
+    const handleToggleChange = () => {
+        setIsMergingEnabled(!isMergingEnabled);
+        // The state update has not taken effect yet, so we use the opposite of the current value
+        updateGraph(originalData, !isMergingEnabled);
+    };
+
+    const parseRawInput = (text) => {
+        const pairs = text.split('\n').map(line => line.trim().split(' x '));
+        let nodes = new Set();
+        let edges = [];
+        pairs.forEach(pair => {
+            // Filter out any pairs that are not exactly two strings
+            // TODO: throw error instead of silently filtering?
+            if (pair.length === 2) {
+                const [b0, b1] = pair;
+                nodes.add(b0);
+                nodes.add(b1);
+                edges.push({ from: b0, to: b1 });
+            }
+        });
+        return {
+            nodes: nodes,
+            edges: edges
+        };
+    };
+
+    const updateGraph = (newData, useMerging) => {
+        if (!useMerging) {
+            let nodes = Array.from(newData.nodes).map(node => ({ id: node, label: node }))
+            let edges = newData.edges;
+            setGraphData({ nodes: nodes, edges: edges });
+        } else {
+            const processedGraph = createMergedGraph(newData.nodes, newData.edges);
+            setGraphData(processedGraph);
+        }
+        setGraphKey(prevKey => prevKey + 1);
+    };
+
+    const createMergedGraph = (nodes, edges) => {
+        let labels = Object.fromEntries(Array.from(nodes).map(node => [node, [new Set([node])]]));
+        let adj = Object.fromEntries(Array.from(nodes).map(node => [node, new Set([node])]));
+        edges.forEach(edge => {
+            adj[edge.from].add(edge.to);
+            adj[edge.to].add(edge.from);
+        });
+
+        let changed = true;
+        while (changed) {
+            changed = false;
+            for (const [b0, b1] of combinations(Object.keys(adj), 2)) {
+                if (adj[b0].has(b1) && setEquals(adj[b0], adj[b1])) {
+                    labels[b0][0] = new Set([...labels[b0][0], ...labels[b1][0]]);
+                    delete adj[b1];
+                    Object.values(adj).forEach(set => set.delete(b1));
+                    changed = true;
+                    break;
+                }
+            }
+        }
+
+        // remove self-loops
+        Object.keys(adj).forEach(k => {
+            adj[k].delete(k);
+        });
+
+        changed = true;
+        while (changed) {
+            changed = false;
+            for (const [b0, b1] of combinations(Object.keys(adj), 2)) {
+                if (setEquals(adj[b0], adj[b1])) {
+                    labels[b0] = [...labels[b0], ...labels[b1]];
+                    delete adj[b1];
+                    Object.values(adj).forEach(set => set.delete(b1));
+                    changed = true;
+                    break;
+                }
+            }
+        }
+
+        const finalNodes = Object.keys(adj).map(node => {
+            return {
+                id:node,
+                label: makeLabel(labels[node]),
+                color: makeLabel(labels[node]).includes('[') ? UNMERGED_METANODE_COLOR : MERGED_METANODE_COLOR
+            }
+        });
+        // Note: we're adding both u->v and v->u edges this way; maybe clean this up?
+        const finalEdges = [];
+        Object.keys(adj).forEach(b => {
+            adj[b].forEach(n => {
+                finalEdges.push({ from: b, to: n });
+            });
+        });
+
+        return {
+            nodes: finalNodes,
+            edges: finalEdges
+        };
+    };
+
+    const makeLabel = (list) => {
+        if (list.length === 1) {
+            return makeLabelSingle([...list[0]]);
+        } else {
+            return `[${list.map(v => makeLabelSingle([...v])).join(',\n')}]`;
+        }
+    };
+    const makeLabelSingle = (list) => {
+        if (list.length === 1) {
+            return list[0];
+        } else {
+            return `{${list.join(', ')}}`;
+        }
+    };
+
+    const combinations = (arr, k) => {
+        let i, j, temp, output = [], head, tailcombs;
+
+        if (k > arr.length || k <= 0) {
+            return [];
+        }
+
+        if (k === arr.length) {
+            return [arr];
+        }
+
+        if (k === 1) {
+            for (i = 0; i < arr.length; i++) {
+                output.push([arr[i]]);
+            }
+            return output;
+        }
+
+        for (i = 0; i < arr.length - k + 1; i++) {
+            head = arr.slice(i, i + 1);
+            tailcombs = combinations(arr.slice(i + 1), k - 1);
+            for (j = 0; j < tailcombs.length; j++) {
+                temp = head.concat(tailcombs[j]);
+                output.push(temp);
+            }
+        }
+        return output;
+    };
+
+    const setEquals = (a, b) => {
+        if (a.size !== b.size) return false;
+        for (let item of a) if (!b.has(item)) return false;
+        return true;
+    };
+
+    const suggestPairs = () => {
+        let pairs = [];
+        let nodeNeighbors = {};
+        graphData.nodes.forEach(node => {
+            nodeNeighbors[node.id] = new Set();
+        });
+
+        // Create a map of each node to its neighbors using current graph data
+        graphData.edges.forEach(edge => {
+            nodeNeighbors[edge.from].add(edge.to);
+            nodeNeighbors[edge.to].add(edge.from);
+        });
+
+        // Find all pairs of nodes without an edge between them
+        graphData.nodes.forEach(node1 => {
+            graphData.nodes.forEach(node2 => {
+                if (node1.id < node2.id && !nodeNeighbors[node1.id].has(node2.id)) {
+                    let commonNeighbors = new Set([...nodeNeighbors[node1.id]].filter(x => nodeNeighbors[node2.id].has(x)));
+                    let nonCommonNeighbors = new Set([...nodeNeighbors[node1.id], ...nodeNeighbors[node2.id]]);
+                    pairs.push({
+                        pair: [node1.label, node2.label],
+                        commonCount: commonNeighbors.size,
+                        nonCommonCount: nonCommonNeighbors.size - commonNeighbors.size,
+                        score: 42*commonNeighbors.size - (nonCommonNeighbors.size - commonNeighbors.size)
+                    });
+                }
+            });
+        });
+
+        // Sort pairs by the score and slice to get top 10
+        pairs.sort((a, b) => b.score - a.score);
+        let topPairs = pairs.slice(0, 10);
+
+        setSuggestedPairs(topPairs.map(pair => `${pair.pair[0]} x ${pair.pair[1]} (Common: ${pair.commonCount}, Non-Common: ${pair.nonCommonCount})`));
+    };
+
+    // TODO: add a way to switch into graph config mode without commenting/uncommenting the div
+    return (
+        <div style={{ height: '100vh', display: 'flex' }}>
+            {/*<div
+                ref={configContainerRef}
+                style={{
+                    minWidth: '250px',
+                    height: '100vh', // Sets the height of the container
+                    overflow: 'auto' // Enables scrolling for overflow content
+            }}>
+            </div>*/}
+            <div style={{ flexGrow: 1 }}>
+                <button onClick={handleLoadClipboard}>Load Clipboard (or use Ctrl/Cmd-V)</button>
+                <div>
+                    Enable Summary Mode (recommended)
+                    <input
+                        type="checkbox"
+                        checked={isMergingEnabled}
+                        onChange={handleToggleChange}
+                    />
+                </div>
+                <div>Total Pairs: {originalData.edges.length}</div>
+                <button onClick={suggestPairs}>Suggest New Pairs (Beta)</button>
+                <ul>
+                    {suggestedPairs.map((pair, index) => (
+                        <li key={index}>{pair}</li>
+                    ))}
+                </ul>
+                <Graph key={graphKey} graph={graphData} options={graphOptions} />
+            </div>
+        </div>
+    );
+};
+
+export default BunnyGraph;

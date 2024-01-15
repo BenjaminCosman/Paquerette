@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Graph from 'react-graph-vis';
+import Cookies from 'js-cookie';
 
 const MERGED_METANODE_COLOR = "#ADD8E6";
 const UNMERGED_METANODE_COLOR = "#FFB6C1";
@@ -63,6 +64,39 @@ const BunnyGraph = () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
     }, []);
+
+    // Function to save the original data to a cookie
+    // TODO: silently fails if data is too large
+    const handleSaveToDisk = () => {
+        console.log(originalData);
+        let savedVersion = {
+            nodes: Array.from(originalData.nodes),
+            edges: originalData.edges
+        }
+        Cookies.set('originalData', JSON.stringify(savedVersion)); // should I make the cookie expire?
+        alert('Data saved to disk.');
+    };
+
+    // Function to load the original data from a cookie
+    const handleLoadFromDisk = () => {
+        const savedData = Cookies.get('originalData');
+        if (savedData) {
+            const newOriginalData = JSON.parse(savedData);
+            let loadedNodes = new Set();
+            newOriginalData.nodes.forEach(node => {
+                loadedNodes.add(node);
+            });
+            let loadedVersion = {
+                nodes: loadedNodes,
+                edges: newOriginalData.edges
+            }
+            console.log(loadedVersion)
+            setOriginalData(loadedVersion);
+            updateGraph(loadedVersion, isMergingEnabled);
+        } else {
+            alert('No data found on disk.');
+        }
+    };
 
     const handleLoadClipboard = () => {
         navigator.clipboard.readText()
@@ -274,6 +308,8 @@ const BunnyGraph = () => {
             </div>*/}
             <div style={{ flexGrow: 1 }}>
                 <button onClick={handleLoadClipboard}>Load Clipboard (or use Ctrl/Cmd-V)</button>
+                <button onClick={handleLoadFromDisk}>Load from Disk</button>
+                <button onClick={handleSaveToDisk}>Save to Disk</button>
                 <div>
                     Enable Summary Mode (recommended)
                     <input

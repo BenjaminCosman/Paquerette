@@ -15,7 +15,7 @@ const BunnyGraph = () => {
         // TODO: add a way to pin nodes in place?
         autoResize: true, // Note: this causes problems when configure mode is uncommented
         nodes: {
-            "opacity": 0.5,
+            opacity: 0.5,
         },
         edges: {
             arrows: '' // disable arrowheads on edges
@@ -161,11 +161,13 @@ const BunnyGraph = () => {
                 color: makeLabel(labels[node]).includes('[') ? UNMERGED_METANODE_COLOR : MERGED_METANODE_COLOR
             }
         });
-        // Note: we're adding both u->v and v->u edges this way; maybe clean this up?
         const finalEdges = [];
         Object.keys(adj).forEach(b => {
             adj[b].forEach(n => {
-                finalEdges.push({ from: b, to: n });
+                // Arbitrarily add edges in only one direction (we aren't distinguishing from and to anyway)
+                if (b < n) {
+                    finalEdges.push({ from: b, to: n });
+                }
             });
         });
 

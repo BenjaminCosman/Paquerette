@@ -227,7 +227,50 @@ const BunnyGraph = () => {
         return true;
     };
 
-    const suggestPairs = () => {
+    const suggestSimilarNeighborsToMerge = () => {
+        let suggestions = [];
+        let nodeNeighbors = {};
+
+        // Create a map of each node to its neighbors
+        graphData.nodes.forEach(node => {
+            nodeNeighbors[node.id] = new Set();
+        });
+        graphData.edges.forEach(edge => {
+            nodeNeighbors[edge.from].add(edge.to);
+            nodeNeighbors[edge.to].add(edge.from);
+        });
+
+        // Iterate over each node and its neighbors
+        graphData.nodes.forEach(nodeA => {
+            nodeNeighbors[nodeA.id].forEach(nodeB => {
+                let commonNeighbors = new Set([...nodeNeighbors[nodeA.id]].filter(x => nodeNeighbors[nodeB].has(x)));
+                let uniqueNeighborsOfB = new Set([...nodeNeighbors[nodeB]].filter(x => !nodeNeighbors[nodeA.id].has(x)));
+
+                uniqueNeighborsOfB.forEach(nodeC => {
+                    if (nodeC !== nodeA.id && nodeC !== nodeB) {
+                        suggestions.push({
+                            nodeA: nodeA.id,
+                            nodeB: nodeB,
+                            nodeC: nodeC,
+                            commonNeighbors: commonNeighbors.size
+                        });
+                    }
+                });
+            });
+        });
+
+        // Sort suggestions based on the number of common neighbors and slice to get top 10
+        suggestions.sort((a, b) => b.commonNeighbors - a.commonNeighbors);
+        let topSuggestions = suggestions.slice(0, 10);
+
+        // Format the suggestions for display
+        let formattedSuggestions = topSuggestions.map(s => `Pair ${s.nodeA} (Similar to ${s.nodeB}) and ${s.nodeC} (Common Neighbors: ${s.commonNeighbors})`);
+
+        setSuggestedPairs(formattedSuggestions);
+    };
+
+
+    const suggestSimilarNonneighborsToPair = () => {
         let pairs = [];
         let nodeNeighbors = {};
         graphData.nodes.forEach(node => {
@@ -285,7 +328,8 @@ const BunnyGraph = () => {
                     />
                 </div>
                 <div>Total Pairs: {originalData.edges.length}</div>
-                <button onClick={suggestPairs}>Suggest New Pairs (Beta)</button>
+                <button onClick={suggestSimilarNonneighborsToPair}>Suggest New Pairs - similar non-neighbor method (Beta)</button>
+                <button onClick={suggestSimilarNeighborsToMerge}>Suggest New Pairs - similar neighbor method (Beta)</button>
                 <ul>
                     {suggestedPairs.map((pair, index) => (
                         <li key={index}>{pair}</li>

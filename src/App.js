@@ -268,8 +268,8 @@ const BunnyGraph = () => {
 
         // Format the suggestions for display
         let formattedSuggestions = topSuggestions.map(s =>
-            `Pair ${s.nodeA} (Similar to ${s.nodeB}) and ${s.nodeC} (Common Neighbors: ${s.commonNeighbors}, Unique Neighbors of ${s.nodeB}: ${s.uniqueNeighborsOfB})`);
-
+            `Pair ${s.nodeA} (Similar to ${s.nodeB}) and ${s.nodeC} (Common neighbors: ${s.commonNeighbors}, Unique neighbors of ${s.nodeB}: ${s.uniqueNeighborsOfB})`
+        );
         setSuggestedPairs(formattedSuggestions);
     };
 

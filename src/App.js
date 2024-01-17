@@ -262,10 +262,7 @@ const BunnyGraph = () => {
 
         // Sort suggestions based on the number of common neighbors and then on the number of unique neighbors of B
         suggestions.sort((a, b) => {
-            if (b.commonNeighbors === a.commonNeighbors) {
-                return a.uniqueNeighborsOfB - b.uniqueNeighborsOfB;
-            }
-            return b.commonNeighbors - a.commonNeighbors;
+            return (b.commonNeighbors - a.commonNeighbors) + 42*(a.uniqueNeighborsOfB - b.uniqueNeighborsOfB);
         });
         let topSuggestions = suggestions.slice(0, 10);
 

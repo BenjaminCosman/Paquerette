@@ -1,18 +1,23 @@
-# Getting Started with Create React App
+# Development
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+To install:
+
+- Clone the repo
+- From the top level, run `npm install`
+
+To run:
+
+- From the top level, run `npm start`. The app will start in dev mode at [http://localhost:3000](http://localhost:3000).
+
+Most changes can happen fully live - you won't usually need to re-`install`, re-`start`, or even manually reload the webpage.
+
+This app is currently deployed at https://benjamincosman.github.io/Paquerette/. To update the deployed version, run `npm run deploy`.
+
+# Create React App Documentation
+
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app). The rest of this README is excerpted from the auto-generated Create React App README.
 
 ## Available Scripts
-
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
 
 ### `npm test`
 

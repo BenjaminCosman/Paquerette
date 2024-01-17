@@ -233,25 +233,27 @@ const BunnyGraph = () => {
 
         // Create a map of each node to its neighbors
         graphData.nodes.forEach(node => {
-            nodeNeighbors[node.id] = new Set();
+            nodeNeighbors[node.label] = new Set();
         });
         graphData.edges.forEach(edge => {
-            nodeNeighbors[edge.from].add(edge.to);
-            nodeNeighbors[edge.to].add(edge.from);
+            const fromLabel = graphData.nodes.find(n => n.id === edge.from).label;
+            const toLabel = graphData.nodes.find(n => n.id === edge.to).label;
+            nodeNeighbors[fromLabel].add(toLabel);
+            nodeNeighbors[toLabel].add(fromLabel);
         });
 
         // Iterate over each node and its neighbors
         graphData.nodes.forEach(nodeA => {
-            nodeNeighbors[nodeA.id].forEach(nodeB => {
-                let commonNeighbors = new Set([...nodeNeighbors[nodeA.id]].filter(x => nodeNeighbors[nodeB].has(x)));
-                let uniqueNeighborsOfB = new Set([...nodeNeighbors[nodeB]].filter(x => !nodeNeighbors[nodeA.id].has(x)));
+            nodeNeighbors[nodeA.label].forEach(nodeBLabel => {
+                let commonNeighbors = new Set([...nodeNeighbors[nodeA.label]].filter(x => nodeNeighbors[nodeBLabel].has(x)));
+                let uniqueNeighborsOfB = new Set([...nodeNeighbors[nodeBLabel]].filter(x => !nodeNeighbors[nodeA.label].has(x)));
 
-                uniqueNeighborsOfB.forEach(nodeC => {
-                    if (nodeC !== nodeA.id && nodeC !== nodeB) {
+                uniqueNeighborsOfB.forEach(nodeCLabel => {
+                    if (nodeCLabel !== nodeA.label && nodeCLabel !== nodeBLabel) {
                         suggestions.push({
-                            nodeA: nodeA.id,
-                            nodeB: nodeB,
-                            nodeC: nodeC,
+                            nodeA: nodeA.label,
+                            nodeB: nodeBLabel,
+                            nodeC: nodeCLabel,
                             commonNeighbors: commonNeighbors.size,
                             uniqueNeighborsOfB: uniqueNeighborsOfB.size - 1 // don't count A
                         });
@@ -268,7 +270,7 @@ const BunnyGraph = () => {
 
         // Format the suggestions for display
         let formattedSuggestions = topSuggestions.map(s =>
-            `Pair ${s.nodeA} (Similar to ${s.nodeB}) and ${s.nodeC} (Common neighbors: ${s.commonNeighbors}, Unique neighbors of ${s.nodeB}: ${s.uniqueNeighborsOfB})`
+            `${s.nodeC} x ${s.nodeA} (which is similar to ${s.nodeB} - Common neighbors: ${s.commonNeighbors}, Unique extras: ${s.uniqueNeighborsOfB})`
         );
         setSuggestedPairs(formattedSuggestions);
     };

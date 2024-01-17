@@ -252,23 +252,29 @@ const BunnyGraph = () => {
                             nodeA: nodeA.id,
                             nodeB: nodeB,
                             nodeC: nodeC,
-                            commonNeighbors: commonNeighbors.size
+                            commonNeighbors: commonNeighbors.size,
+                            uniqueNeighborsOfB: uniqueNeighborsOfB.size - 1 // don't count A
                         });
                     }
                 });
             });
         });
 
-        // Sort suggestions based on the number of common neighbors and slice to get top 10
-        suggestions.sort((a, b) => b.commonNeighbors - a.commonNeighbors);
+        // Sort suggestions based on the number of common neighbors and then on the number of unique neighbors of B
+        suggestions.sort((a, b) => {
+            if (b.commonNeighbors === a.commonNeighbors) {
+                return a.uniqueNeighborsOfB - b.uniqueNeighborsOfB;
+            }
+            return b.commonNeighbors - a.commonNeighbors;
+        });
         let topSuggestions = suggestions.slice(0, 10);
 
         // Format the suggestions for display
-        let formattedSuggestions = topSuggestions.map(s => `Pair ${s.nodeA} (Similar to ${s.nodeB}) and ${s.nodeC} (Common Neighbors: ${s.commonNeighbors})`);
+        let formattedSuggestions = topSuggestions.map(s =>
+            `Pair ${s.nodeA} (Similar to ${s.nodeB}) and ${s.nodeC} (Common Neighbors: ${s.commonNeighbors}, Unique Neighbors of ${s.nodeB}: ${s.uniqueNeighborsOfB})`);
 
         setSuggestedPairs(formattedSuggestions);
     };
-
 
     const suggestSimilarNonneighborsToPair = () => {
         let pairs = [];

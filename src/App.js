@@ -51,26 +51,25 @@ const BunnyGraph = () => {
     //     }));
     // }, []); // Empty dependency array should theoretically ensure this runs only once after initial render??
 
-    const handleKeyDown = (event) => {
-        if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-            handleLoadClipboard();
-        }
-    };
-
     useEffect(() => {
+        const handleKeyDown = (event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+                handleLoadClipboard(isMergingEnabled);
+            }
+        };
+
         document.addEventListener('keydown', handleKeyDown);
         return () => { // Cleanup
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, []);
+    }, [isMergingEnabled]); // Add isMergingEnabled as a dependency
 
-    const handleLoadClipboard = () => {
+    const handleLoadClipboard = (isMerging) => {
         navigator.clipboard.readText()
             .then(text => {
                 const newOriginalData = parseRawInput(text);
                 setOriginalData(newOriginalData);
-                // Directly pass the new data to updateGraph instead of relying on the graphData state to guarantee it renders in current cycle
-                updateGraph(newOriginalData, isMergingEnabled); // TODO: doesn't always seem to use the correct value of isMergingEnabled
+                updateGraph(newOriginalData, isMerging);
             })
             .catch(err => console.error('Failed to read clipboard contents: ', err));
     };
@@ -323,7 +322,7 @@ const BunnyGraph = () => {
             }}>
             </div>*/}
             <div style={{ flexGrow: 1 }}>
-                <button onClick={handleLoadClipboard}>Load Clipboard (or use Ctrl/Cmd-V)</button>
+                <button onClick={() => handleLoadClipboard(isMergingEnabled)}>Load Clipboard (or use Ctrl/Cmd-V)</button>
                 <div>
                     Enable Summary Mode (recommended)
                     <input

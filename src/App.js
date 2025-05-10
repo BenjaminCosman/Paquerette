@@ -10,6 +10,9 @@ const BunnyGraph = () => {
     const [graphKey, setGraphKey] = useState(0);
     const [isMergingEnabled, setIsMergingEnabled] = useState(false);
     const [suggestedPairs, setSuggestedPairs] = useState([]);
+    const [hasNonStandardBunnies, setHasNonStandardBunnies] = useState(false);
+    const [foundPrefixes, setFoundPrefixes] = useState(new Set());
+    const standardPrefixes = new Set(['N', 'W', 'E', 'S', 'C', 'NW?', 'NE?', 'SW?', 'SE?']);
     const [graphOptions, setGraphOptions] = useState({
         // TODO: add 'manipulation' option to allow editing the graph?
         // TODO: add a way to pin nodes in place?
@@ -84,16 +87,29 @@ const BunnyGraph = () => {
         const pairs = text.split('\n').map(line => line.trim().split(' x '));
         let nodes = new Set();
         let edges = [];
+        let hasNonStandard = false;
+        let prefixes = new Set();
         pairs.forEach(pair => {
             // Filter out any pairs that are not exactly two strings
             // TODO: throw error instead of silently filtering?
             if (pair.length === 2) {
                 const [b0, b1] = pair;
+                // Extract prefixes (everything before the first "-")
+                const prefix0 = b0.split('-')[0];
+                const prefix1 = b1.split('-')[0];
+                prefixes.add(prefix0);
+                prefixes.add(prefix1);
+                // Check if either bunny has a non-standard prefix
+                if (!standardPrefixes.has(prefix0) || !standardPrefixes.has(prefix1)) {
+                    hasNonStandard = true;
+                }
                 nodes.add(b0);
                 nodes.add(b1);
                 edges.push({ from: b0, to: b1 });
             }
         });
+        setHasNonStandardBunnies(hasNonStandard);
+        setFoundPrefixes(prefixes);
         return {
             nodes: nodes,
             edges: edges
@@ -332,6 +348,7 @@ const BunnyGraph = () => {
                     />
                 </div>
                 <div>Total Pairs: {originalData.edges.length}</div>
+                <div>Found prefixes: {Array.from(foundPrefixes).join(', ')}</div>
                 <button onClick={suggestSimilarNonneighborsToPair}>Suggest New Pairs - similar non-neighbor method (Beta)</button>
                 <button onClick={suggestSimilarNeighborsToMerge}>Suggest New Pairs - similar neighbor method (Beta)</button>
                 <ul>

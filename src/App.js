@@ -12,6 +12,7 @@ const BunnyGraph = () => {
     const [suggestedPairs, setSuggestedPairs] = useState([]);
     const [hasNonStandardBunnies, setHasNonStandardBunnies] = useState(false);
     const [foundPrefixes, setFoundPrefixes] = useState(new Set());
+    const [selectedPrefixes, setSelectedPrefixes] = useState(new Set());
     const standardPrefixes = new Set(['N', 'W', 'E', 'S', 'C', 'NW?', 'NE?', 'SW?', 'SE?']);
     const [graphOptions, setGraphOptions] = useState({
         // TODO: add 'manipulation' option to allow editing the graph?
@@ -118,8 +119,29 @@ const BunnyGraph = () => {
 
     const updateGraph = (newData, useMerging) => {
         if (!useMerging) {
-            let nodes = Array.from(newData.nodes).map(node => ({ id: node, label: node }))
+            let nodes = Array.from(newData.nodes).map(node => ({ id: node, label: node }));
             let edges = newData.edges;
+
+            // Apply prefix filtering if any checkboxes are selected
+            if (selectedPrefixes.size > 0) {
+                const prefixSet = new Set(selectedPrefixes);
+                // If "Base game" is selected, add all standard prefixes
+                if (prefixSet.has('Base game')) {
+                    standardPrefixes.forEach(p => prefixSet.add(p));
+                    prefixSet.delete('Base game');
+                }
+
+                // Filter nodes and edges based on selected prefixes
+                nodes = nodes.filter(node => {
+                    const prefix = node.label.split('-')[0];
+                    return prefixSet.has(prefix);
+                });
+                const nodeIds = new Set(nodes.map(n => n.id));
+                edges = edges.filter(edge =>
+                    nodeIds.has(edge.from) && nodeIds.has(edge.to)
+                );
+            }
+
             setGraphData({ nodes: nodes, edges: edges });
         } else {
             const processedGraph = createMergedGraph(newData.nodes, newData.edges);
@@ -242,6 +264,23 @@ const BunnyGraph = () => {
         return true;
     };
 
+    const handlePrefixToggle = (prefix) => {
+        setSelectedPrefixes(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(prefix)) {
+                newSet.delete(prefix);
+            } else {
+                newSet.add(prefix);
+            }
+            return newSet;
+        });
+    };
+
+    // Update graph when selected prefixes change
+    useEffect(() => {
+        updateGraph(originalData, isMergingEnabled);
+    }, [selectedPrefixes, isMergingEnabled]);
+
     const hasBaseGame = Array.from(foundPrefixes).some(p => standardPrefixes.has(p));
     const nonStandardPrefixes = Array.from(foundPrefixes).filter(p => !standardPrefixes.has(p));
     const shouldShowCheckboxes = (hasBaseGame && nonStandardPrefixes.length > 0) || nonStandardPrefixes.length > 1;
@@ -356,7 +395,11 @@ const BunnyGraph = () => {
                     <div style={{ display: 'flex', gap: '10px', margin: '10px 0' }}>
                         {hasBaseGame && (
                             <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <input type="checkbox" />
+                                <input
+                                    type="checkbox"
+                                    checked={selectedPrefixes.has('Base game')}
+                                    onChange={() => handlePrefixToggle('Base game')}
+                                />
                                 Base game
                             </label>
                         )}
@@ -364,7 +407,11 @@ const BunnyGraph = () => {
                             .sort()
                             .map(prefix => (
                                 <label key={prefix} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <input type="checkbox" />
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedPrefixes.has(prefix)}
+                                        onChange={() => handlePrefixToggle(prefix)}
+                                    />
                                     {prefix}
                                 </label>
                             ))}

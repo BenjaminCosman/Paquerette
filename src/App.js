@@ -73,7 +73,6 @@ const BunnyGraph = () => {
                 const newOriginalData = parseRawInput(text);
                 setOriginalData(newOriginalData);
                 setSelectedPrefixes(new Set());  // Reset selected prefixes
-                updateGraph(newOriginalData, isMerging);
             })
             .catch(err => console.error('Failed to read clipboard contents: ', err));
     };
@@ -278,7 +277,7 @@ const BunnyGraph = () => {
     // Update graph when selected prefixes change
     useEffect(() => {
         updateGraph(originalData, isMergingEnabled);
-    }, [selectedPrefixes, isMergingEnabled]);
+    }, [selectedPrefixes, isMergingEnabled, originalData]);
 
     const hasBaseGame = Array.from(foundPrefixes).some(p => standardPrefixes.has(p));
     const nonStandardPrefixes = Array.from(foundPrefixes).filter(p => !standardPrefixes.has(p));

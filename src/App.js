@@ -3,6 +3,7 @@ import Graph from 'react-graph-vis';
 
 const MERGED_METANODE_COLOR = "#ADD8E6";
 const UNMERGED_METANODE_COLOR = "#FFB6C1";
+const standardPrefixes = new Set(['N', 'W', 'E', 'S', 'C', 'NW?', 'NE?', 'SW?', 'SE?']);
 
 const BunnyGraph = () => {
     const [originalData, setOriginalData] = useState({ nodes: [], edges: [] });
@@ -12,7 +13,6 @@ const BunnyGraph = () => {
     const [suggestedPairs, setSuggestedPairs] = useState([]);
     const [foundPrefixes, setFoundPrefixes] = useState(new Set());
     const [selectedPrefixes, setSelectedPrefixes] = useState(new Set());
-    const standardPrefixes = new Set(['N', 'W', 'E', 'S', 'C', 'NW?', 'NE?', 'SW?', 'SE?']);
     const [graphOptions, setGraphOptions] = useState({
         // TODO: add 'manipulation' option to allow editing the graph?
         // TODO: add a way to pin nodes in place?
@@ -65,7 +65,7 @@ const BunnyGraph = () => {
         return () => { // Cleanup
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isMergingEnabled]); // Add isMergingEnabled as a dependency
+    }, [isMergingEnabled]);
 
     const handleLoadClipboard = (isMerging) => {
         navigator.clipboard.readText()

@@ -274,7 +274,7 @@ const BunnyGraph = () => {
         });
     };
 
-    // Update graph when selected prefixes change
+    // Update graph when stuff changes
     useEffect(() => {
         updateGraph(originalData, isMergingEnabled);
     }, [selectedPrefixes, isMergingEnabled, originalData]);

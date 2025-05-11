@@ -77,10 +77,6 @@ const BunnyGraph = () => {
             .catch(err => console.error('Failed to read clipboard contents: ', err));
     };
 
-    const handleToggleChange = () => {
-        setIsMergingEnabled(!isMergingEnabled);
-    };
-
     const parseRawInput = (text) => {
         const pairs = text.split('\n').map(line => line.trim().split(' x '));
         let nodes = new Set();
@@ -377,7 +373,7 @@ const BunnyGraph = () => {
                     <input
                         type="checkbox"
                         checked={isMergingEnabled}
-                        onChange={handleToggleChange}
+                        onChange={() => setIsMergingEnabled(!isMergingEnabled)}
                     />
                 </div>
                 <div>Total Pairs: {originalData.edges.length}</div>

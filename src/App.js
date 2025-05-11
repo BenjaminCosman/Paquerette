@@ -242,6 +242,10 @@ const BunnyGraph = () => {
         return true;
     };
 
+    const hasBaseGame = Array.from(foundPrefixes).some(p => standardPrefixes.has(p));
+    const nonStandardPrefixes = Array.from(foundPrefixes).filter(p => !standardPrefixes.has(p));
+    const shouldShowCheckboxes = (hasBaseGame && nonStandardPrefixes.length > 0) || nonStandardPrefixes.length > 1;
+
     const suggestSimilarNeighborsToMerge = () => {
         let suggestions = [];
         let nodeNeighbors = {};
@@ -348,23 +352,24 @@ const BunnyGraph = () => {
                     />
                 </div>
                 <div>Total Pairs: {originalData.edges.length}</div>
-                <div style={{ display: 'flex', gap: '10px', margin: '10px 0' }}>
-                    {Array.from(foundPrefixes).some(p => standardPrefixes.has(p)) && (
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <input type="checkbox" />
-                            Base game
-                        </label>
-                    )}
-                    {Array.from(foundPrefixes)
-                        .filter(prefix => !standardPrefixes.has(prefix))
-                        .sort()
-                        .map(prefix => (
-                            <label key={prefix} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {shouldShowCheckboxes && (
+                    <div style={{ display: 'flex', gap: '10px', margin: '10px 0' }}>
+                        {hasBaseGame && (
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <input type="checkbox" />
-                                {prefix}
+                                Base game
                             </label>
-                        ))}
-                </div>
+                        )}
+                        {nonStandardPrefixes
+                            .sort()
+                            .map(prefix => (
+                                <label key={prefix} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <input type="checkbox" />
+                                    {prefix}
+                                </label>
+                            ))}
+                    </div>
+                )}
                 <button onClick={suggestSimilarNonneighborsToPair}>Suggest New Pairs - similar non-neighbor method (Beta)</button>
                 <button onClick={suggestSimilarNeighborsToMerge}>Suggest New Pairs - similar neighbor method (Beta)</button>
                 <ul>

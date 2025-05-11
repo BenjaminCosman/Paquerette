@@ -119,33 +119,35 @@ const BunnyGraph = () => {
     };
 
     const updateGraph = (newData, useMerging) => {
-        if (!useMerging) {
-            let nodes = Array.from(newData.nodes).map(node => ({ id: node, label: node }));
-            let edges = newData.edges;
+        let nodes = Array.from(newData.nodes);
+        let edges = newData.edges;
 
-            // Apply prefix filtering if any checkboxes are selected
-            if (selectedPrefixes.size > 0) {
-                const prefixSet = new Set(selectedPrefixes);
-                // If "Base game" is selected, add all standard prefixes
-                if (prefixSet.has('Base game')) {
-                    standardPrefixes.forEach(p => prefixSet.add(p));
-                    prefixSet.delete('Base game');
-                }
-
-                // Filter nodes and edges based on selected prefixes
-                nodes = nodes.filter(node => {
-                    const prefix = node.label.split('-')[0];
-                    return prefixSet.has(prefix);
-                });
-                const nodeIds = new Set(nodes.map(n => n.id));
-                edges = edges.filter(edge =>
-                    nodeIds.has(edge.from) && nodeIds.has(edge.to)
-                );
+        // Apply prefix filtering if any checkboxes are selected
+        if (selectedPrefixes.size > 0) {
+            const prefixSet = new Set(selectedPrefixes);
+            // If "Base game" is selected, add all standard prefixes
+            if (prefixSet.has('Base game')) {
+                standardPrefixes.forEach(p => prefixSet.add(p));
+                prefixSet.delete('Base game');
             }
 
+            // Filter nodes and edges based on selected prefixes
+            nodes = nodes.filter(node => {
+                const prefix = node.split('-')[0];
+                return prefixSet.has(prefix);
+            });
+            const nodeSet = new Set(nodes);
+            edges = edges.filter(edge =>
+                nodeSet.has(edge.from) && nodeSet.has(edge.to)
+            );
+        }
+
+        // Now process the filtered data
+        if (!useMerging) {
+            nodes = nodes.map(node => ({ id: node, label: node }));
             setGraphData({ nodes: nodes, edges: edges });
         } else {
-            const processedGraph = createMergedGraph(newData.nodes, newData.edges);
+            const processedGraph = createMergedGraph(nodes, edges);
             setGraphData(processedGraph);
         }
         setGraphKey(prevKey => prevKey + 1);

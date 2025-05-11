@@ -10,7 +10,6 @@ const BunnyGraph = () => {
     const [graphKey, setGraphKey] = useState(0);
     const [isMergingEnabled, setIsMergingEnabled] = useState(false);
     const [suggestedPairs, setSuggestedPairs] = useState([]);
-    const [hasNonStandardBunnies, setHasNonStandardBunnies] = useState(false);
     const [foundPrefixes, setFoundPrefixes] = useState(new Set());
     const [selectedPrefixes, setSelectedPrefixes] = useState(new Set());
     const standardPrefixes = new Set(['N', 'W', 'E', 'S', 'C', 'NW?', 'NE?', 'SW?', 'SE?']);
@@ -110,7 +109,6 @@ const BunnyGraph = () => {
                 edges.push({ from: b0, to: b1 });
             }
         });
-        setHasNonStandardBunnies(hasNonStandard);
         setFoundPrefixes(prefixes);
         return {
             nodes: nodes,

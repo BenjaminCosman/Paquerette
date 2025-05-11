@@ -80,8 +80,6 @@ const BunnyGraph = () => {
 
     const handleToggleChange = () => {
         setIsMergingEnabled(!isMergingEnabled);
-        // The state update has not taken effect yet, so we use the opposite of the current value
-        updateGraph(originalData, !isMergingEnabled);
     };
 
     const parseRawInput = (text) => {

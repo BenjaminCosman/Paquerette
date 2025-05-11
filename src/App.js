@@ -404,8 +404,7 @@ const BunnyGraph = () => {
                                 Base game
                             </label>
                         )}
-                        {nonStandardPrefixes
-                            .sort()
+                        {nonStandardPrefixes.sort()
                             .map(prefix => (
                                 <label key={prefix} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <input

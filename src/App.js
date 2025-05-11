@@ -73,6 +73,7 @@ const BunnyGraph = () => {
             .then(text => {
                 const newOriginalData = parseRawInput(text);
                 setOriginalData(newOriginalData);
+                setSelectedPrefixes(new Set());  // Reset selected prefixes
                 updateGraph(newOriginalData, isMerging);
             })
             .catch(err => console.error('Failed to read clipboard contents: ', err));

@@ -3,6 +3,7 @@ import Graph from 'react-graph-vis';
 
 const MERGED_METANODE_COLOR = "#ADD8E6";
 const UNMERGED_METANODE_COLOR = "#FFB6C1";
+const standardPrefixes = new Set(['N', 'W', 'E', 'S', 'C', 'NW?', 'NE?', 'SW?', 'SE?']);
 
 const BunnyGraph = () => {
     const [originalData, setOriginalData] = useState({ nodes: [], edges: [] });
@@ -10,6 +11,8 @@ const BunnyGraph = () => {
     const [graphKey, setGraphKey] = useState(0);
     const [isMergingEnabled, setIsMergingEnabled] = useState(false);
     const [suggestedPairs, setSuggestedPairs] = useState([]);
+    const [foundPrefixes, setFoundPrefixes] = useState(new Set());
+    const [selectedPrefixes, setSelectedPrefixes] = useState(new Set());
     const [graphOptions, setGraphOptions] = useState({
         // TODO: add 'manipulation' option to allow editing the graph?
         // TODO: add a way to pin nodes in place?
@@ -62,38 +65,36 @@ const BunnyGraph = () => {
         return () => { // Cleanup
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isMergingEnabled]); // Add isMergingEnabled as a dependency
+    }, [isMergingEnabled]);
 
     const handleLoadClipboard = (isMerging) => {
         navigator.clipboard.readText()
             .then(text => {
                 const newOriginalData = parseRawInput(text);
                 setOriginalData(newOriginalData);
-                updateGraph(newOriginalData, isMerging);
+                setSelectedPrefixes(new Set());  // Reset selected prefixes
             })
             .catch(err => console.error('Failed to read clipboard contents: ', err));
-    };
-
-    const handleToggleChange = () => {
-        setIsMergingEnabled(!isMergingEnabled);
-        // The state update has not taken effect yet, so we use the opposite of the current value
-        updateGraph(originalData, !isMergingEnabled);
     };
 
     const parseRawInput = (text) => {
         const pairs = text.split('\n').map(line => line.trim().split(' x '));
         let nodes = new Set();
         let edges = [];
+        let prefixes = new Set();
         pairs.forEach(pair => {
             // Filter out any pairs that are not exactly two strings
             // TODO: throw error instead of silently filtering?
             if (pair.length === 2) {
                 const [b0, b1] = pair;
+                prefixes.add(b0.split('-')[0]);
+                prefixes.add(b1.split('-')[0]);
                 nodes.add(b0);
                 nodes.add(b1);
                 edges.push({ from: b0, to: b1 });
             }
         });
+        setFoundPrefixes(prefixes);
         return {
             nodes: nodes,
             edges: edges
@@ -101,12 +102,35 @@ const BunnyGraph = () => {
     };
 
     const updateGraph = (newData, useMerging) => {
+        let nodes = Array.from(newData.nodes);
+        let edges = newData.edges;
+
+        // Apply prefix filtering if any checkboxes are selected
+        if (selectedPrefixes.size > 0) {
+            const prefixSet = new Set(selectedPrefixes);
+            // If "Base game" is selected, add all standard prefixes
+            if (prefixSet.has('Base game')) {
+                standardPrefixes.forEach(p => prefixSet.add(p));
+                prefixSet.delete('Base game');
+            }
+
+            // Filter nodes and edges based on selected prefixes
+            nodes = nodes.filter(node => {
+                const prefix = node.split('-')[0];
+                return prefixSet.has(prefix);
+            });
+            const nodeSet = new Set(nodes);
+            edges = edges.filter(edge =>
+                nodeSet.has(edge.from) && nodeSet.has(edge.to)
+            );
+        }
+
+        // Now process the filtered data
         if (!useMerging) {
-            let nodes = Array.from(newData.nodes).map(node => ({ id: node, label: node }))
-            let edges = newData.edges;
+            nodes = nodes.map(node => ({ id: node, label: node }));
             setGraphData({ nodes: nodes, edges: edges });
         } else {
-            const processedGraph = createMergedGraph(newData.nodes, newData.edges);
+            const processedGraph = createMergedGraph(nodes, edges);
             setGraphData(processedGraph);
         }
         setGraphKey(prevKey => prevKey + 1);
@@ -226,6 +250,27 @@ const BunnyGraph = () => {
         return true;
     };
 
+    const handlePrefixToggle = (prefix) => {
+        setSelectedPrefixes(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(prefix)) {
+                newSet.delete(prefix);
+            } else {
+                newSet.add(prefix);
+            }
+            return newSet;
+        });
+    };
+
+    // Update graph when stuff changes
+    useEffect(() => {
+        updateGraph(originalData, isMergingEnabled);
+    }, [selectedPrefixes, isMergingEnabled, originalData]);
+
+    const hasBaseGame = Array.from(foundPrefixes).some(p => standardPrefixes.has(p));
+    const nonStandardPrefixes = Array.from(foundPrefixes).filter(p => !standardPrefixes.has(p));
+    const shouldShowCheckboxes = (hasBaseGame && nonStandardPrefixes.length > 0) || nonStandardPrefixes.length > 1;
+
     const suggestSimilarNeighborsToMerge = () => {
         let suggestions = [];
         let nodeNeighbors = {};
@@ -328,10 +373,35 @@ const BunnyGraph = () => {
                     <input
                         type="checkbox"
                         checked={isMergingEnabled}
-                        onChange={handleToggleChange}
+                        onChange={() => setIsMergingEnabled(!isMergingEnabled)}
                     />
                 </div>
                 <div>Total Pairs: {originalData.edges.length}</div>
+                {shouldShowCheckboxes && (
+                    <div style={{ display: 'flex', gap: '10px', margin: '10px 0' }}>
+                        {hasBaseGame && (
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={selectedPrefixes.has('Base game')}
+                                    onChange={() => handlePrefixToggle('Base game')}
+                                />
+                                Base game
+                            </label>
+                        )}
+                        {nonStandardPrefixes.sort()
+                            .map(prefix => (
+                                <label key={prefix} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedPrefixes.has(prefix)}
+                                        onChange={() => handlePrefixToggle(prefix)}
+                                    />
+                                    {prefix}
+                                </label>
+                            ))}
+                    </div>
+                )}
                 <button onClick={suggestSimilarNonneighborsToPair}>Suggest New Pairs - similar non-neighbor method (Beta)</button>
                 <button onClick={suggestSimilarNeighborsToMerge}>Suggest New Pairs - similar neighbor method (Beta)</button>
                 <ul>

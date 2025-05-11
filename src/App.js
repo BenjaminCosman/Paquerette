@@ -348,7 +348,14 @@ const BunnyGraph = () => {
                     />
                 </div>
                 <div>Total Pairs: {originalData.edges.length}</div>
-                <div>Found prefixes: {Array.from(foundPrefixes).join(', ')}</div>
+                <div style={{ display: 'flex', gap: '10px', margin: '10px 0' }}>
+                    {Array.from(foundPrefixes).sort().map(prefix => (
+                        <label key={prefix} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <input type="checkbox" />
+                            {prefix}
+                        </label>
+                    ))}
+                </div>
                 <button onClick={suggestSimilarNonneighborsToPair}>Suggest New Pairs - similar non-neighbor method (Beta)</button>
                 <button onClick={suggestSimilarNeighborsToMerge}>Suggest New Pairs - similar neighbor method (Beta)</button>
                 <ul>

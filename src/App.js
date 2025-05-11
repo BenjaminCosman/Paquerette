@@ -85,22 +85,14 @@ const BunnyGraph = () => {
         const pairs = text.split('\n').map(line => line.trim().split(' x '));
         let nodes = new Set();
         let edges = [];
-        let hasNonStandard = false;
         let prefixes = new Set();
         pairs.forEach(pair => {
             // Filter out any pairs that are not exactly two strings
             // TODO: throw error instead of silently filtering?
             if (pair.length === 2) {
                 const [b0, b1] = pair;
-                // Extract prefixes (everything before the first "-")
-                const prefix0 = b0.split('-')[0];
-                const prefix1 = b1.split('-')[0];
-                prefixes.add(prefix0);
-                prefixes.add(prefix1);
-                // Check if either bunny has a non-standard prefix
-                if (!standardPrefixes.has(prefix0) || !standardPrefixes.has(prefix1)) {
-                    hasNonStandard = true;
-                }
+                prefixes.add(b0.split('-')[0]);
+                prefixes.add(b1.split('-')[0]);
                 nodes.add(b0);
                 nodes.add(b1);
                 edges.push({ from: b0, to: b1 });
